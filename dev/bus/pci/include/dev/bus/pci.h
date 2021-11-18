@@ -123,8 +123,10 @@ typedef struct {
  * PCI address structure
  */
 typedef struct {
+    uint16_t segment;
     uint8_t bus;
-    uint8_t dev_fn;
+    uint8_t dev;
+    uint8_t fn;
 } pci_location_t;
 
 typedef struct {
@@ -154,6 +156,7 @@ status_t pci_init_legacy(void);
 // try to detect PCI based on a known ecam base.
 status_t pci_init_ecam(paddr_t ecam_base, uint16_t segment, uint8_t start_bus, uint8_t end_bus);
 
+// user facing C api
 int pci_get_last_bus(void);
 
 status_t pci_find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index);

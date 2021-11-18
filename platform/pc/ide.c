@@ -231,7 +231,7 @@ static status_t ide_init(struct device *dev) {
             goto err;
         }
 
-        LTRACEF("Found PCI IDE device at %02x:%02x\n", loc.bus, loc.dev_fn);
+        LTRACEF("Found PCI IDE device at %04x:%02x:%02x.%02x\n", loc.segment, loc.bus, loc.dev, loc.fn);
 
         for (i=0; i < sizeof(pci_config) / sizeof(uint32_t); i++) {
             uint32_t reg = sizeof(uint32_t) * i;

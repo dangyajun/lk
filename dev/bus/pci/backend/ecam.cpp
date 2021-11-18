@@ -85,9 +85,14 @@ status_t pci_ecam::initialize() {
 
 // compute the offset into the ecam given the location and register offset
 inline size_t location_to_offset(const pci_location_t *state, uint32_t reg) {
+    //
+    // | 27 - 20 | 19 - 15 | 14 - 12     |  11 - 8          | 7 - 2       | 1 - 0       |
+    // | Bus Nr  | Dev Nr  | Function Nr | Ext. Register Nr | Register Nr | Byte Enable |
+
     // TODO: clamp or assert on invalid offset
     size_t offset = (size_t)state->bus << 20;
-    offset += (size_t)state->dev_fn << 12;
+    offset += (size_t)state->dev << 15;
+    offset += (size_t)state->fn << 12;
     offset += reg;
     return offset;
 }
@@ -112,31 +117,31 @@ inline int write_config(const pci_location_t *state, uint32_t reg, T value, uint
 }
 
 int pci_ecam::read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t *value) {
-    LTRACEF_LEVEL(2, "state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
     return read_config(state, reg, value, ecam_ptr_);
 }
 
 int pci_ecam::read_config_half(const pci_location_t *state, uint32_t reg, uint16_t *value) {
-    LTRACEF_LEVEL(2, "state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
     return read_config(state, reg, value, ecam_ptr_);
 }
 
 int pci_ecam::read_config_word(const pci_location_t *state, uint32_t reg, uint32_t *value) {
-    LTRACEF_LEVEL(2, "state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
     return read_config(state, reg, value, ecam_ptr_);
 }
 
 int pci_ecam::write_config_byte(const pci_location_t *state, uint32_t reg, uint8_t value) {
-    LTRACEF_LEVEL(2, "state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
     return write_config(state, reg, value, ecam_ptr_);
 }
 
 int pci_ecam::write_config_half(const pci_location_t *state, uint32_t reg, uint16_t value) {
-    LTRACEF_LEVEL(2, "state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
     return write_config(state, reg, value, ecam_ptr_);
 }
 
 int pci_ecam::write_config_word(const pci_location_t *state, uint32_t reg, uint32_t value) {
-    LTRACEF_LEVEL(2, "state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
     return write_config(state, reg, value, ecam_ptr_);
 }

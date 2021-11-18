@@ -24,59 +24,64 @@ static void pci_list(void) {
     uint16_t device_id, vendor_id;
     uint8_t header_type;
     uint8_t base_class, sub_class, interface;
-    int busses = 0, devices = 0, lines = 0, devfn, ret;
+    int busses = 0, devices = 0, lines = 0, ret;
     int c;
 
     printf("Scanning...\n");
 
+    state.segment = 0;
+
     for (int bus = 0; bus <= (int)pci_get_last_bus(); bus++) {
+        state.bus = bus;
         busses++;
 
-        state.bus = bus;
+        for (int dev = 0; dev < 32; dev++) {
+            state.dev = dev;
 
-        for (devfn = 0; devfn < 256; devfn++) {
-            state.dev_fn = devfn;
+            for (int fn = 0; fn < 8; fn++) {
+                state.fn = fn;
 
-            ret = pci_read_config_half(&state, PCI_CONFIG_VENDOR_ID, &vendor_id);
-            if (ret != _PCI_SUCCESSFUL) goto error;
+                ret = pci_read_config_half(&state, PCI_CONFIG_VENDOR_ID, &vendor_id);
+                if (ret != _PCI_SUCCESSFUL) goto error;
 
-            ret = pci_read_config_half(&state, PCI_CONFIG_DEVICE_ID, &device_id);
-            if (ret != _PCI_SUCCESSFUL) goto error;
+                ret = pci_read_config_half(&state, PCI_CONFIG_DEVICE_ID, &device_id);
+                if (ret != _PCI_SUCCESSFUL) goto error;
 
-            ret = pci_read_config_byte(&state, PCI_CONFIG_HEADER_TYPE, &header_type);
-            if (ret != _PCI_SUCCESSFUL) goto error;
+                ret = pci_read_config_byte(&state, PCI_CONFIG_HEADER_TYPE, &header_type);
+                if (ret != _PCI_SUCCESSFUL) goto error;
 
-            ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_BASE, &base_class);
-            if (ret != _PCI_SUCCESSFUL) goto error;
+                ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_BASE, &base_class);
+                if (ret != _PCI_SUCCESSFUL) goto error;
 
-            ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_SUB, &sub_class);
-            if (ret != _PCI_SUCCESSFUL) goto error;
+                ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_SUB, &sub_class);
+                if (ret != _PCI_SUCCESSFUL) goto error;
 
-            ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_INTR, &interface);
-            if (ret != _PCI_SUCCESSFUL) goto error;
+                ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_INTR, &interface);
+                if (ret != _PCI_SUCCESSFUL) goto error;
 
-            if (vendor_id != 0xffff) {
-                printf("%02x:%02x.%0x vendor_id=%04x device_id=%04x, header_type=%02x "
-                       "base_class=%02x, sub_class=%02x, interface=%02x\n",
-                       state.bus, state.dev_fn >> 3, state.dev_fn & 7,
-                       vendor_id, device_id, header_type, base_class, sub_class, interface);
-                devices++;
-                lines++;
-            }
+                if (vendor_id != 0xffff) {
+                    printf("%04x:%02x:%02x.%0x vendor_id=%04x device_id=%04x, header_type=%02x "
+                           "base_class=%02x, sub_class=%02x, interface=%02x\n",
+                           state.segment, state.bus, state.dev, state.fn,
+                           vendor_id, device_id, header_type, base_class, sub_class, interface);
+                    devices++;
+                    lines++;
+                }
 
-            if (((devfn & 7) == 0) && ~header_type & PCI_HEADER_TYPE_MULTI_FN) {
-                // this is not a multi-function device, so advance to the next device
-                // only check when looking at function 0 of a device
-                devfn |= 7;
-            }
+                if ((fn == 0) && ~header_type & PCI_HEADER_TYPE_MULTI_FN) {
+                    // this is not a multi-function device, so advance to the next device
+                    // only check when looking at function 0 of a device
+                    continue;
+                }
 
-            if (lines == 23) {
-                printf("... press any key to continue, q to quit ...");
-                while ((c = getchar()) < 0);
-                printf("\n");
-                lines = 0;
+                if (lines == 23) {
+                    printf("... press any key to continue, q to quit ...");
+                    while ((c = getchar()) < 0);
+                    printf("\n");
+                    lines = 0;
 
-                if (c == 'q' || c == 'Q') goto quit;
+                    if (c == 'q' || c == 'Q') goto quit;
+                }
             }
         }
     }
@@ -100,21 +105,23 @@ static int pci_config(int argc, const console_cmd_args *argv) {
     unsigned int i;
     int ret;
 
-    if (argc < 5) {
+    if (argc < 6) {
         return -1;
     }
 
     if (!strcmp(argv[2].str, "dump")) {
+        loc.segment = 0;
         loc.bus = atoui(argv[3].str);
-        loc.dev_fn = atoui(argv[4].str);
+        loc.dev = atoui(argv[4].str);
+        loc.fn = atoui(argv[5].str);
 
         for (i=0; i < sizeof(pci_config_t); i++) {
             ret = pci_read_config_byte(&loc, i, (uint8_t *) &config + i);
             if (ret != _PCI_SUCCESSFUL) goto error;
         }
 
-        printf("Device at %02x:%02x.%1x vendor id=%04x device id=%04x\n", loc.bus,
-               loc.dev_fn >> 3, loc.dev_fn & 7, config.vendor_id, config.device_id);
+        printf("Device at %04x:%02x:%02x.%1x vendor id=%04x device id=%04x\n", loc.segment, loc.bus,
+               loc.dev, loc.fn, config.vendor_id, config.device_id);
         printf("command=%04x status=%04x pi=%02x sub cls=%02x base cls=%02x\n",
                config.command, config.status, config.program_interface,
                config.sub_class, config.base_class);
@@ -124,13 +131,15 @@ static int pci_config(int argc, const console_cmd_args *argv) {
                    i+1, config.base_addresses[i+1]);
         }
     } else if (!strcmp(argv[2].str, "rb") || !strcmp(argv[2].str, "rh") || !strcmp(argv[2].str, "rw")) {
-        if (argc != 6) {
+        if (argc != 7) {
             return -1;
         }
 
+        loc.segment = 0;
         loc.bus = atoui(argv[3].str);
-        loc.dev_fn = atoui(argv[4].str);
-        offset = atoui(argv[5].str);
+        loc.dev = atoui(argv[4].str);
+        loc.fn = atoui(argv[5].str);
+        offset = atoui(argv[6].str);
 
         switch (argv[2].str[1]) {
             case 'b': {
@@ -138,7 +147,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
                 ret = pci_read_config_byte(&loc, offset, &value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
-                printf("byte at device %02x:%02x config offset %04x: %02x\n", loc.bus, loc.dev_fn, offset, value);
+                printf("byte at device %04x:%02x:%02x.%1x config offset %04x: %02x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
             }
             break;
 
@@ -147,7 +156,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
                 ret = pci_read_config_half(&loc, offset, &value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
-                printf("half at device %02x:%02x config offset %04x: %04x\n", loc.bus, loc.dev_fn, offset, value);
+                printf("half at device %04x:%02x:%02x.%1x config offset %04x: %04x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
             }
             break;
 
@@ -156,44 +165,47 @@ static int pci_config(int argc, const console_cmd_args *argv) {
                 ret = pci_read_config_word(&loc, offset, &value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
-                printf("word at device %02x:%02x config offset %04x: %08x\n", loc.bus, loc.dev_fn, offset, value);
+                printf("word at device %04x:%02x:%02x.%1x config offset %04x: %08x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
             }
             break;
         }
     } else if (!strcmp(argv[2].str, "mb") || !strcmp(argv[2].str, "mh") || !strcmp(argv[2].str, "mw")) {
-        if (argc != 7) {
+        if (argc != 8) {
             return -1;
         }
 
+        loc.segment = 0;
         loc.bus = atoui(argv[3].str);
-        loc.dev_fn = atoui(argv[4].str);
-        offset = atoui(argv[5].str);
+        loc.dev = atoui(argv[4].str);
+        loc.fn = atoui(argv[5].str);
+        offset = atoui(argv[6].str);
 
         switch (argv[2].str[1]) {
             case 'b': {
-                uint8_t value = atoui(argv[6].str);
+                uint8_t value = atoui(argv[7].str);
                 ret = pci_write_config_byte(&loc, offset, value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
-                printf("byte to device %02x:%02x config offset %04x: %02x\n", loc.bus, loc.dev_fn, offset, value);
+                printf("byte to device %04x:%02x:%02x.%1x config offset %04x: %02x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
             }
             break;
 
             case 'h': {
-                uint16_t value = atoui(argv[6].str);
+                uint16_t value = atoui(argv[7].str);
                 ret = pci_write_config_half(&loc, offset, value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
-                printf("half to device %02x:%02x config offset %04x: %04x\n", loc.bus, loc.dev_fn, offset, value);
+                printf("half to device %04x:%02x:%02x.%1x config offset %04x: %04x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
+
             }
             break;
 
             case 'w': {
-                uint32_t value = atoui(argv[6].str);
+                uint32_t value = atoui(argv[7].str);
                 ret = pci_write_config_word(&loc, offset, value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
-                printf("word to device %02x:%02x config offset %04x: %08x\n", loc.bus, loc.dev_fn, offset, value);
+                printf("word to device %04x:%02x:%02x.%1x config offset %04x: %08x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
             }
             break;
         }
@@ -213,9 +225,9 @@ static int pci_cmd(int argc, const console_cmd_args *argv) {
         printf("pci commands:\n");
 usage:
         printf("%s list\n", argv[0].str);
-        printf("%s config dump <bus> <devfn>\n", argv[0].str);
-        printf("%s config <rb|rh|rw> <bus> <devfn> <offset>\n", argv[0].str);
-        printf("%s config <mb|mh|mw> <bus> <devfn> <offset> <value>\n", argv[0].str);
+        printf("%s config dump <bus> <dev> <fn>\n", argv[0].str);
+        printf("%s config <rb|rh|rw> <bus> <dev> <fn> <offset>\n", argv[0].str);
+        printf("%s config <mb|mh|mw> <bus> <dev> <fn> <offset> <value>\n", argv[0].str);
         goto out;
     }
 

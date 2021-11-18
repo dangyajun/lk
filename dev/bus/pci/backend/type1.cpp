@@ -81,20 +81,20 @@ pci_type1 *pci_type1::detect() {
 }
 
 int pci_type1::read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t *value) {
-    LTRACEF("state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
-    *value = type1_read_half(state->bus, state->dev_fn >> 3, state->dev_fn & 0x7, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
+    *value = type1_read_half(state->bus, state->dev, state->fn, reg);
     return NO_ERROR;
 }
 
 int pci_type1::read_config_half(const pci_location_t *state, uint32_t reg, uint16_t *value) {
-    LTRACEF("state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
-    *value = type1_read_half(state->bus, state->dev_fn >> 3, state->dev_fn & 0x7, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
+    *value = type1_read_half(state->bus, state->dev, state->fn, reg);
     return NO_ERROR;
 }
 
 int pci_type1::read_config_word(const pci_location_t *state, uint32_t reg, uint32_t *value) {
-    LTRACEF("state bus %#hhx dev_fn %#hhx reg %#x\n", state->bus, state->dev_fn, reg);
-    *value = type1_read_word(state->bus, state->dev_fn >> 3, state->dev_fn & 0x7, reg);
+    LTRACEF_LEVEL(2, "state bus %#hhx dev %#hhx %#hhx reg %#x\n", state->bus, state->dev, state->fn, reg);
+    *value = type1_read_word(state->bus, state->dev, state->fn, reg);
     return NO_ERROR;
 }
 

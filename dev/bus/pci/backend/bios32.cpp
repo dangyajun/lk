@@ -196,8 +196,10 @@ int pci_bios32::find_pci_device(pci_location_t *state, uint16_t device_id, uint1
         "D"(&bios32_entry_)
         : "cc", "memory");
 
+    state->segment = 0;
     state->bus = bx >> 8;
-    state->dev_fn = bx & 0xFF;
+    state->dev = (bx >> 3) & 0x1f;
+    state->fn = bx & 0x7;
 
     ret >>= 8;
     return ret & 0xFF;
@@ -219,8 +221,10 @@ int pci_bios32::find_pci_class_code(pci_location_t *state, uint32_t class_code, 
         "D"(&bios32_entry_)
         : "cc", "memory");
 
+    state->segment = 0;
     state->bus = bx >> 8;
-    state->dev_fn = bx & 0xFF;
+    state->dev = (bx >> 3) & 0x1f;
+    state->fn = bx & 0x7;
 
     ret >>= 8;
     return ret & 0xFF;
@@ -231,7 +235,7 @@ int pci_bios32::read_config_byte(const pci_location_t *state, uint32_t reg, uint
 
     bx = state->bus;
     bx <<= 8;
-    bx |= state->dev_fn;
+    bx |= (state->dev << 3) | state->fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -253,7 +257,7 @@ int pci_bios32::read_config_half(const pci_location_t *state, uint32_t reg, uint
 
     bx = state->bus;
     bx <<= 8;
-    bx |= state->dev_fn;
+    bx |= (state->dev << 3) | state->fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -275,7 +279,7 @@ int pci_bios32::read_config_word(const pci_location_t *state, uint32_t reg, uint
 
     bx = state->bus;
     bx <<= 8;
-    bx |= state->dev_fn;
+    bx |= (state->dev << 3) | state->fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -297,7 +301,7 @@ int pci_bios32::write_config_byte(const pci_location_t *state, uint32_t reg, uin
 
     bx = state->bus;
     bx <<= 8;
-    bx |= state->dev_fn;
+    bx |= (state->dev << 3) | state->fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -319,7 +323,7 @@ int pci_bios32::write_config_half(const pci_location_t *state, uint32_t reg, uin
 
     bx = state->bus;
     bx <<= 8;
-    bx |= state->dev_fn;
+    bx |= (state->dev << 3) | state->fn;
     __asm__(
         "lcall *(%%esi)	\n\t"
         "jc 1f					\n\t"
@@ -341,7 +345,7 @@ int pci_bios32::write_config_word(const pci_location_t *state, uint32_t reg, uin
 
     bx = state->bus;
     bx <<= 8;
-    bx |= state->dev_fn;
+    bx |= (state->dev << 3) | state->fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -382,7 +386,7 @@ int pci_bios32::set_irq_hw_int(const pci_location_t *state, uint8_t int_pin, uin
 
     bx = state->bus;
     bx <<= 8;
-    bx |= state->dev_fn;
+    bx |= (state->dev << 3) | state->fn;
     cx = irq;
     cx <<= 8;
     cx |= int_pin;
