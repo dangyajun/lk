@@ -21,7 +21,7 @@
 #include <kernel/vm.h>
 #endif
 
-#include "pci_priv.h"
+#include "../pci_priv.h"
 
 #define LOCAL_TRACE 0
 

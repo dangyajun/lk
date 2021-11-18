@@ -17,7 +17,7 @@
 #include <dev/bus/pci.h>
 #include <lk/trace.h>
 
-#include "pci_priv.h"
+#include "../pci_priv.h"
 
 #if ARCH_X86_32
 // Only actually supported on x86-32
