@@ -27,6 +27,7 @@ SpinLock lock;
 pci_backend *pcib = nullptr;
 } // namespace
 
+/* user facing routines */
 int pci_get_last_bus() {
     if (!pcib) {
         return ERR_NOT_CONFIGURED;
@@ -35,7 +36,11 @@ int pci_get_last_bus() {
     return pcib->get_last_bus();
 }
 
-/* user facing routines */
+int pci_get_last_segment() {
+    // currently hard coded to 1 segment
+    return 0;
+}
+
 status_t pci_find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index) {
     LTRACEF("device_id dev %#hx vendor %#hx index %#hx\n", device_id, vendor_id, index);
 
@@ -161,6 +166,7 @@ status_t pci_init_legacy() {
     if ((pcib = pci_bios32::detect())) {
         dprintf(INFO, "PCI: pci bios functions installed\n");
         dprintf(INFO, "PCI: last pci bus is %d\n", pcib->get_last_bus());
+        pci::bus_mgr_init();
         return NO_ERROR;
     }
 
@@ -168,6 +174,7 @@ status_t pci_init_legacy() {
     if ((pcib = pci_type1::detect())) {
         dprintf(INFO, "PCI: pci type1 functions installed\n");
         dprintf(INFO, "PCI: last pci bus is %d\n", pcib->get_last_bus());
+        pci::bus_mgr_init();
         return NO_ERROR;
     }
 
@@ -183,6 +190,7 @@ status_t pci_init_ecam(paddr_t ecam_base, uint16_t segment, uint8_t start_bus, u
     if ((pcib = pci_ecam::detect(ecam_base, segment, start_bus, end_bus))) {
         dprintf(INFO, "PCI: pci ecam functions installed\n");
         dprintf(INFO, "PCI: last pci bus is %d\n", pcib->get_last_bus());
+        pci::bus_mgr_init();
         return NO_ERROR;
     }
 

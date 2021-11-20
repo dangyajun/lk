@@ -29,58 +29,61 @@ static void pci_list(void) {
 
     printf("Scanning...\n");
 
-    state.segment = 0;
 
-    for (int bus = 0; bus <= (int)pci_get_last_bus(); bus++) {
-        state.bus = bus;
-        busses++;
+    for (int segment = 0; segment <= (int)pci_get_last_segment(); segment++) {
+        state.segment = segment;
 
-        for (int dev = 0; dev < 32; dev++) {
-            state.dev = dev;
+        for (int bus = 0; bus <= (int)pci_get_last_bus(); bus++) {
+            state.bus = bus;
+            busses++;
 
-            for (int fn = 0; fn < 8; fn++) {
-                state.fn = fn;
+            for (int dev = 0; dev < 32; dev++) {
+                state.dev = dev;
 
-                ret = pci_read_config_half(&state, PCI_CONFIG_VENDOR_ID, &vendor_id);
-                if (ret != _PCI_SUCCESSFUL) goto error;
+                for (int fn = 0; fn < 8; fn++) {
+                    state.fn = fn;
 
-                ret = pci_read_config_half(&state, PCI_CONFIG_DEVICE_ID, &device_id);
-                if (ret != _PCI_SUCCESSFUL) goto error;
+                    ret = pci_read_config_half(&state, PCI_CONFIG_VENDOR_ID, &vendor_id);
+                    if (ret != _PCI_SUCCESSFUL) goto error;
 
-                ret = pci_read_config_byte(&state, PCI_CONFIG_HEADER_TYPE, &header_type);
-                if (ret != _PCI_SUCCESSFUL) goto error;
+                    ret = pci_read_config_half(&state, PCI_CONFIG_DEVICE_ID, &device_id);
+                    if (ret != _PCI_SUCCESSFUL) goto error;
 
-                ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_BASE, &base_class);
-                if (ret != _PCI_SUCCESSFUL) goto error;
+                    ret = pci_read_config_byte(&state, PCI_CONFIG_HEADER_TYPE, &header_type);
+                    if (ret != _PCI_SUCCESSFUL) goto error;
 
-                ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_SUB, &sub_class);
-                if (ret != _PCI_SUCCESSFUL) goto error;
+                    ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_BASE, &base_class);
+                    if (ret != _PCI_SUCCESSFUL) goto error;
 
-                ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_INTR, &interface);
-                if (ret != _PCI_SUCCESSFUL) goto error;
+                    ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_SUB, &sub_class);
+                    if (ret != _PCI_SUCCESSFUL) goto error;
 
-                if (vendor_id != 0xffff) {
-                    printf("%04x:%02x:%02x.%0x vendor_id=%04x device_id=%04x, header_type=%02x "
-                           "base_class=%02x, sub_class=%02x, interface=%02x\n",
-                           state.segment, state.bus, state.dev, state.fn,
-                           vendor_id, device_id, header_type, base_class, sub_class, interface);
-                    devices++;
-                    lines++;
-                }
+                    ret = pci_read_config_byte(&state, PCI_CONFIG_CLASS_CODE_INTR, &interface);
+                    if (ret != _PCI_SUCCESSFUL) goto error;
 
-                if ((fn == 0) && ~header_type & PCI_HEADER_TYPE_MULTI_FN) {
-                    // this is not a multi-function device, so advance to the next device
-                    // only check when looking at function 0 of a device
-                    continue;
-                }
+                    if (vendor_id != 0xffff) {
+                        printf("%04x:%02x:%02x.%0x vendor_id=%04x device_id=%04x, header_type=%02x "
+                               "base_class=%02x, sub_class=%02x, interface=%02x\n",
+                               state.segment, state.bus, state.dev, state.fn,
+                               vendor_id, device_id, header_type, base_class, sub_class, interface);
+                        devices++;
+                        lines++;
+                    }
 
-                if (lines == 23) {
-                    printf("... press any key to continue, q to quit ...");
-                    while ((c = getchar()) < 0);
-                    printf("\n");
-                    lines = 0;
+                    if ((fn == 0) && ~header_type & PCI_HEADER_TYPE_MULTI_FN) {
+                        // this is not a multi-function device, so advance to the next device
+                        // only check when looking at function 0 of a device
+                        continue;
+                    }
 
-                    if (c == 'q' || c == 'Q') goto quit;
+                    if (lines == 23) {
+                        printf("... press any key to continue, q to quit ...");
+                        while ((c = getchar()) < 0);
+                        printf("\n");
+                        lines = 0;
+
+                        if (c == 'q' || c == 'Q') goto quit;
+                    }
                 }
             }
         }

@@ -16,4 +16,5 @@
 #include "backend/ecam.h"
 #include "backend/type1.h"
 
+#include "bus_mgr.h"
 
