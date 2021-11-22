@@ -245,7 +245,7 @@ static status_t ide_init(struct device *dev) {
         }
 
         for (i=0; i < 6; i++) {
-            LTRACEF("BAR[%d]: 0x%08x\n", i, pci_config.base_addresses[i]);
+            LTRACEF("BAR[%d]: 0x%08x\n", i, pci_config.type0.base_addresses[i]);
         }
 
         // TODO: fill this in from the bars

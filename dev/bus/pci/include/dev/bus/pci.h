@@ -93,7 +93,7 @@ __BEGIN_CDECLS
 #define PCI_STATUS_SERR_SIG         0x4000
 #define PCI_STATUS_PERR             0x8000
 
-/* Type 0 pci header */
+/* standard part of pci config space */
 typedef struct {
     uint16_t vendor_id;
     uint16_t device_id;
@@ -107,59 +107,48 @@ typedef struct {
     uint8_t latency_timer;
     uint8_t header_type;
     uint8_t bist;
-    uint32_t base_addresses[6];
-    uint32_t cardbus_cis_ptr;
-    uint16_t subsystem_vendor_id;
-    uint16_t subsystem_id;
-    uint32_t expansion_rom_address;
-    uint8_t capabilities_ptr;
-    uint8_t reserved_0[3];
-    uint32_t reserved_1;
-    uint8_t interrupt_line;
-    uint8_t interrupt_pin;
-    uint8_t min_grant;
-    uint8_t max_latency;
+    union {
+        struct {
+            uint32_t base_addresses[6];
+            uint32_t cardbus_cis_ptr;
+            uint16_t subsystem_vendor_id;
+            uint16_t subsystem_id;
+            uint32_t expansion_rom_address;
+            uint8_t capabilities_ptr;
+            uint8_t reserved_0[3];
+            uint32_t reserved_1;
+            uint8_t interrupt_line;
+            uint8_t interrupt_pin;
+            uint8_t min_grant;
+            uint8_t max_latency;
+        } type0; // configuration for normal devices
+        struct {
+            uint32_t base_addresses[2];
+            uint8_t primary_bus;
+            uint8_t secondary_bus;
+            uint8_t subordinate_bus;
+            uint8_t secondary_latency_timer;
+            uint8_t io_base;
+            uint8_t io_limit;
+            uint16_t secondary_status;
+            uint16_t memory_base;
+            uint16_t memory_limit;
+            uint16_t prefetchable_memory_base;
+            uint16_t prefetchable_memory_limit;
+            uint32_t prefetchable_base_upper;
+            uint32_t prefetchable_limit_upper;
+            uint16_t io_base_upper;
+            uint16_t io_limit_upper;
+            uint8_t capabilities_ptr;
+            uint8_t reserved_0[3];
+            uint32_t expansion_rom_address;
+            uint8_t interrupt_line;
+            uint8_t interrupt_pin;
+            uint16_t bridge_control;
+        } type1; // configuration for bridge devices
+    };
 } __PACKED pci_config_t;
 static_assert(sizeof(pci_config_t) == 0x40, "");
-
-/* Type 1 pci header */
-typedef struct {
-    uint16_t vendor_id;
-    uint16_t device_id;
-    uint16_t command;
-    uint16_t status;
-    uint8_t revision_id_0;
-    uint8_t program_interface;
-    uint8_t sub_class;
-    uint8_t base_class;
-    uint8_t cache_line_size;
-    uint8_t latency_timer;
-    uint8_t header_type;
-    uint8_t bist;
-    uint32_t base_addresses[2];
-    uint8_t primary_bus;
-    uint8_t secondary_bus;
-    uint8_t subordinate_bus;
-    uint8_t secondary_latency_timer;
-    uint8_t io_base;
-    uint8_t io_limit;
-    uint16_t secondary_status;
-    uint16_t memory_base;
-    uint16_t memory_limit;
-    uint16_t prefetchable_memory_base;
-    uint16_t prefetchable_memory_limit;
-    uint32_t prefetchable_base_upper;
-    uint32_t prefetchable_base_lower;
-    uint16_t io_base_upper;
-    uint16_t io_limit_upper;
-    uint8_t capabilities_ptr;
-    uint8_t reserved_0[3];
-    uint32_t expansion_rom_address;
-    uint8_t interrupt_line;
-    uint8_t interrupt_pin;
-    uint16_t bridge_control;
-} __PACKED pci_bridge_config_t;
-static_assert(sizeof(pci_bridge_config_t) == 0x40, "");
 
 /*
  * PCI address structure
@@ -201,6 +190,8 @@ status_t pci_init_ecam(paddr_t ecam_base, uint16_t segment, uint8_t start_bus, u
 // user facing C api
 int pci_get_last_bus(void);
 int pci_get_last_segment(void);
+
+status_t pci_read_config(pci_location_t loc, pci_config_t *config);
 
 status_t pci_find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index);
 status_t pci_find_pci_class_code(pci_location_t *state, uint32_t class_code, uint16_t index);

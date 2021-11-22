@@ -130,8 +130,8 @@ static int pci_config(int argc, const console_cmd_args *argv) {
                config.sub_class, config.base_class);
 
         for (i=0; i < 6; i+=2) {
-            printf("bar%d=%08x  bar%d=%08x\n", i, config.base_addresses[i],
-                   i+1, config.base_addresses[i+1]);
+            printf("bar%d=%08x  bar%d=%08x\n", i, config.type0.base_addresses[i],
+                   i+1, config.type0.base_addresses[i+1]);
         }
     } else if (!strcmp(argv[2].str, "rb") || !strcmp(argv[2].str, "rh") || !strcmp(argv[2].str, "rw")) {
         if (argc != 7) {

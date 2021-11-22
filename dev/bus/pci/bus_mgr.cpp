@@ -68,7 +68,6 @@ public:
     virtual void dump(size_t indent = 0);
 
 private:
-    pci_bridge_config_t bridge_config_ = {};
     list_node child_busses_ = LIST_INITIAL_VALUE(child_busses_);
 };
 
@@ -115,29 +114,7 @@ const char *pci_loc_string(pci_location_t loc, char out_str[14]) {
     snprintf(out_str, 14, "%04x:%02x:%02x.%1x", loc.segment, loc.bus, loc.dev, loc.fn);
     return out_str;
 }
-
-status_t read_type0_config(pci_location_t loc, pci_config_t *config) {
-    for (size_t i = 0; i < sizeof(pci_config_t); i++) {
-        // TODO: handle endian swap
-        status_t err = pci_read_config_byte(&loc, i, (uint8_t *)config + i);
-        if (err != _PCI_SUCCESSFUL) {
-            return ERR_NOT_FOUND;
-        }
-    }
-    return NO_ERROR;
-}
-
-status_t read_type1_config(pci_location_t loc, pci_bridge_config_t *config) {
-    for (size_t i = 0; i < sizeof(pci_bridge_config_t); i++) {
-        // TODO: handle endian swap
-        status_t err = pci_read_config_byte(&loc, i, (uint8_t *)config + i);
-        if (err != _PCI_SUCCESSFUL) {
-            return ERR_NOT_FOUND;
-        }
-    }
-    return NO_ERROR;
-}
-} // anonymous namespace
+} // namespace
 
 // probe the device, return a new node and a bool if it's a multifunction device or not
 status_t device::probe(pci_location_t loc, bus *parent_bus, device **out_device, bool *out_multifunction) {
@@ -208,7 +185,7 @@ status_t device::probe(pci_location_t loc, bus *parent_bus, device **out_device,
     device *d = new device(loc, parent_bus);
 
     // try to read in the basic config space for this device
-    err = read_type0_config(loc, &d->config_);
+    err = pci_read_config(loc, &d->config_);
     if (err < 0) {
         delete d;
         return err;
@@ -257,15 +234,15 @@ status_t bridge::probe(pci_location_t loc, bus *parent_bus, device **out_device)
     bridge *br = new bridge(loc, parent_bus);
 
     // we only grok type 1 headers here
-    err = read_type1_config(loc, &br->bridge_config_);
+    err = pci_read_config(loc, &br->config_);
     if (err < 0) {
         delete br;
         return err;
     }
 
     LTRACEF("primary bus %hhd secondary %hhd subordinate %hhd\n",
-            br->bridge_config_.primary_bus, br->bridge_config_.secondary_bus,
-            br->bridge_config_.subordinate_bus);
+            br->config_.type1.primary_bus, br->config_.type1.secondary_bus,
+            br->config_.type1.subordinate_bus);
 
     *out_device = br;
 
@@ -274,7 +251,7 @@ status_t bridge::probe(pci_location_t loc, bus *parent_bus, device **out_device)
     bus *new_bus;
     pci_location_t bus_location = {};
     bus_location.segment = loc.segment;
-    bus_location.bus = br->bridge_config_.secondary_bus;
+    bus_location.bus = br->config_.type1.secondary_bus;
     err = bus::probe(bus_location, br, &new_bus);
     if (err < 0) {
         return err;
@@ -293,8 +270,8 @@ void bridge::dump(size_t indent) {
     }
     char str[14];
     printf("bridge %s %04hx:%04hx child busses [%d..%d]\n", pci_loc_string(loc_, str),
-           bridge_config_.vendor_id, bridge_config_.device_id,
-           bridge_config_.secondary_bus, bridge_config_.subordinate_bus);
+           config_.vendor_id, config_.device_id,
+           config_.type1.secondary_bus, config_.type1.subordinate_bus);
 
     bus *b;
     list_for_every_entry(&child_busses_, b, bus, node) {
