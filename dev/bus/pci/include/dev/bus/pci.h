@@ -192,7 +192,6 @@ int pci_get_last_bus(void);
 int pci_get_last_segment(void);
 
 status_t pci_read_config(pci_location_t loc, pci_config_t *config);
-
 status_t pci_find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index);
 status_t pci_find_pci_class_code(pci_location_t *state, uint32_t class_code, uint16_t index);
 
@@ -207,4 +206,16 @@ status_t pci_write_config_word(const pci_location_t *state, uint32_t reg, uint32
 status_t pci_get_irq_routing_options(irq_routing_entry *entries, uint16_t *count, uint16_t *pci_irqs);
 status_t pci_set_irq_hw_int(const pci_location_t *state, uint8_t int_pin, uint8_t irq);
 
+
+// pci bus manager
+// builds a list of devices and allows for various operations on the list
+
+// C level visitor routine
+typedef void(*pci_visit_routine)(pci_location_t loc, void *cookie);
+status_t pci_bus_mgr_visit_devices(pci_visit_routine routine, void *cookie);
+
+// must be called after pci_init_*();
+status_t pci_bus_mgr_init(void);
+
 __END_CDECLS
+

@@ -25,6 +25,7 @@ namespace pci {
 // root of the pci bus
 class bus;
 bus *root = nullptr;
+list_node bus_list = LIST_INITIAL_VALUE(bus_list);
 
 // generic pci device
 class device {
@@ -44,7 +45,6 @@ public:
 protected:
     // let the bus device directly manipulate our list node
     friend class bus;
-    list_node *list_node_ptr() { return &node; }
     list_node node = LIST_INITIAL_CLEARED_VALUE;
 
     pci_location_t loc_ = {};
@@ -63,12 +63,12 @@ public:
 
     static status_t probe(pci_location_t loc, bus *bus, device **out_device);
 
-    void add_bus(bus *b);
+    void add_bus(bus *b) { secondary_bus_ = b; }
 
     virtual void dump(size_t indent = 0);
 
 private:
-    list_node child_busses_ = LIST_INITIAL_VALUE(child_busses_);
+    bus *secondary_bus_ = nullptr;
 };
 
 // bus device holds a list of devices and a reference to its bridge device
@@ -88,12 +88,15 @@ public:
 
     void dump(size_t indent = 0);
 
-private:
-    // let the bridge device directly manipulate our list node
-    friend class bridge;
     list_node *list_node_ptr() { return &node; }
+
+    template <typename F>
+    status_t for_every_device(F func);
+
+    // master list of busses for easy iteration
     list_node node = LIST_INITIAL_CLEARED_VALUE;
 
+private:
     pci_location_t loc_ = {};
     bridge *b_ = nullptr;
     list_node child_devices_ = LIST_INITIAL_VALUE(child_devices_);
@@ -101,11 +104,7 @@ private:
 
 void bus::add_device(device *d) {
     // TODO: assert that no two devices have the same address
-    list_add_tail(&child_devices_, d->list_node_ptr());
-}
-
-void bridge::add_bus(bus *b) {
-    list_add_tail(&child_busses_, b->list_node_ptr());
+    list_add_tail(&child_devices_, &d->node);
 }
 
 // helper routines
@@ -261,6 +260,9 @@ status_t bridge::probe(pci_location_t loc, bus *parent_bus, device **out_device)
     DEBUG_ASSERT(new_bus);
     br->add_bus(new_bus);
 
+    // add the bus to the global bus list
+    list_add_tail(&bus_list, new_bus->list_node_ptr());
+
     return NO_ERROR;
 }
 
@@ -273,9 +275,8 @@ void bridge::dump(size_t indent) {
            config_.vendor_id, config_.device_id,
            config_.type1.secondary_bus, config_.type1.subordinate_bus);
 
-    bus *b;
-    list_for_every_entry(&child_busses_, b, bus, node) {
-        b->dump(indent + 2);
+    if (secondary_bus_) {
+        secondary_bus_->dump(indent + 2);
     }
 }
 
@@ -328,7 +329,43 @@ void bus::dump(size_t indent) {
     }
 }
 
-status_t bus_mgr_init() {
+// call the provided functor on every device in this bus
+template <typename F>
+status_t bus::for_every_device(F func) {
+    status_t err = NO_ERROR;
+
+    device *d;
+    list_for_every_entry(&child_devices_, d, device, node) {
+        err = func(d);
+        if (err != NO_ERROR) {
+            return err;
+        }
+    }
+    return err;
+}
+
+} // pci
+
+// for every bus in the system, pass the visit routine to the device
+status_t pci_bus_mgr_visit_devices(pci_visit_routine routine, void *cookie) {
+    using namespace pci;
+
+    auto v = [&](device *d) -> status_t {
+        routine(d->loc(), cookie);
+        return NO_ERROR;
+    };
+
+    bus *b;
+    list_for_every_entry(&bus_list, b, bus, node) {
+        b->for_every_device(v);
+    }
+
+    return NO_ERROR;
+}
+
+status_t pci_bus_mgr_init() {
+    using namespace pci;
+
     LTRACE_ENTRY;
 
     // start drilling into the pci bus tree
@@ -351,7 +388,11 @@ status_t bus_mgr_init() {
     printf("PCI dump:\n");
     root->dump(2);
 
-    return NO_ERROR;
-}
+    printf("visit all devices\n");
+    pci_bus_mgr_visit_devices([](pci_location_t _loc) {
+        char str[14];
+        printf("%s\n", pci_loc_string(_loc, str));
+    });
 
+    return NO_ERROR;
 }

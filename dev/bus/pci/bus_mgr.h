@@ -8,24 +8,20 @@
 #pragma once
 
 #include <sys/types.h>
+#include <dev/bus/pci.h>
 
-namespace pci {
+// C++ wrapper to convert lambdas and other function like things to the C api
+template <typename T>
+void pci_bus_mgr_visit_devices(T routine) {
+    struct vdata {
+        T &routine;
+    };
 
-status_t bus_mgr_init();
+    auto v = [](pci_location_t loc, void *cookie) {
+        vdata *data = static_cast<vdata *>(cookie);
+        data->routine(loc);
+    };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-} // namespace pci
-
+    vdata data = { routine };
+    pci_bus_mgr_visit_devices(v, &data);
+}
