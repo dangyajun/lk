@@ -20,19 +20,13 @@ public:
     static pci_bios32 *detect();
 
     // a few overridden methods
-    virtual int find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index) override;
-    virtual int find_pci_class_code(pci_location_t *state, uint32_t class_code, uint16_t index) override;
+    virtual int read_config_byte(pci_location_t state, uint32_t reg, uint8_t *value) override;
+    virtual int read_config_half(pci_location_t state, uint32_t reg, uint16_t *value) override;
+    virtual int read_config_word(pci_location_t state, uint32_t reg, uint32_t *value) override;
 
-    virtual int read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t *value) override;
-    virtual int read_config_half(const pci_location_t *state, uint32_t reg, uint16_t *value) override;
-    virtual int read_config_word(const pci_location_t *state, uint32_t reg, uint32_t *value) override;
-
-    virtual int write_config_byte(const pci_location_t *state, uint32_t reg, uint8_t value) override;
-    virtual int write_config_half(const pci_location_t *state, uint32_t reg, uint16_t value) override;
-    virtual int write_config_word(const pci_location_t *state, uint32_t reg, uint32_t value) override;
-
-    virtual int get_irq_routing_options(irq_routing_options_t *options, uint16_t *pci_irqs) override;
-    virtual int set_irq_hw_int(const pci_location_t *state, uint8_t int_pin, uint8_t irq) override;
+    virtual int write_config_byte(pci_location_t state, uint32_t reg, uint8_t value) override;
+    virtual int write_config_half(pci_location_t state, uint32_t reg, uint16_t value) override;
+    virtual int write_config_word(pci_location_t state, uint32_t reg, uint32_t value) override;
 
 private:
     // far call structure used by BIOS32 routines

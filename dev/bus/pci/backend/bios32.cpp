@@ -179,63 +179,12 @@ pci_bios32 *pci_bios32::detect() {
     return b32;
 }
 
-int pci_bios32::find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index) {
+int pci_bios32::read_config_byte(const pci_location_t state, uint32_t reg, uint8_t *value) {
     uint32_t bx, ret;
 
-    __asm__(
-        "lcall *(%%edi)		\n\t"
-        "jc 1f				\n\t"
-        "xor %%ah,%%ah		\n"
-        "1:"
-        : "=b"(bx),
-        "=a"(ret)
-        : "1"(PCIBIOS_FIND_PCI_DEVICE),
-        "c"(device_id),
-        "d"(vendor_id),
-        "S"(index),
-        "D"(&bios32_entry_)
-        : "cc", "memory");
-
-    state->segment = 0;
-    state->bus = bx >> 8;
-    state->dev = (bx >> 3) & 0x1f;
-    state->fn = bx & 0x7;
-
-    ret >>= 8;
-    return ret & 0xFF;
-}
-
-int pci_bios32::find_pci_class_code(pci_location_t *state, uint32_t class_code, uint16_t index) {
-    uint32_t bx, ret;
-
-    __asm__(
-        "lcall *(%%edi)			\n\t"
-        "jc 1f					\n\t"
-        "xor %%ah,%%ah			\n"
-        "1:"
-        : "=b"(bx),
-        "=a"(ret)
-        : "1"(PCIBIOS_FIND_PCI_CLASS_CODE),
-        "c"(class_code),
-        "S"(index),
-        "D"(&bios32_entry_)
-        : "cc", "memory");
-
-    state->segment = 0;
-    state->bus = bx >> 8;
-    state->dev = (bx >> 3) & 0x1f;
-    state->fn = bx & 0x7;
-
-    ret >>= 8;
-    return ret & 0xFF;
-}
-
-int pci_bios32::read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t *value) {
-    uint32_t bx, ret;
-
-    bx = state->bus;
+    bx = state.bus;
     bx <<= 8;
-    bx |= (state->dev << 3) | state->fn;
+    bx |= (state.dev << 3) | state.fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -252,12 +201,12 @@ int pci_bios32::read_config_byte(const pci_location_t *state, uint32_t reg, uint
     return ret & 0xFF;
 }
 
-int pci_bios32::read_config_half(const pci_location_t *state, uint32_t reg, uint16_t *value) {
+int pci_bios32::read_config_half(const pci_location_t state, uint32_t reg, uint16_t *value) {
     uint32_t bx, ret;
 
-    bx = state->bus;
+    bx = state.bus;
     bx <<= 8;
-    bx |= (state->dev << 3) | state->fn;
+    bx |= (state.dev << 3) | state.fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -274,12 +223,12 @@ int pci_bios32::read_config_half(const pci_location_t *state, uint32_t reg, uint
     return ret & 0xFF;
 }
 
-int pci_bios32::read_config_word(const pci_location_t *state, uint32_t reg, uint32_t *value) {
+int pci_bios32::read_config_word(const pci_location_t state, uint32_t reg, uint32_t *value) {
     uint32_t bx, ret;
 
-    bx = state->bus;
+    bx = state.bus;
     bx <<= 8;
-    bx |= (state->dev << 3) | state->fn;
+    bx |= (state.dev << 3) | state.fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -296,12 +245,12 @@ int pci_bios32::read_config_word(const pci_location_t *state, uint32_t reg, uint
     return ret & 0xFF;
 }
 
-int pci_bios32::write_config_byte(const pci_location_t *state, uint32_t reg, uint8_t value) {
+int pci_bios32::write_config_byte(const pci_location_t state, uint32_t reg, uint8_t value) {
     uint32_t bx, ret;
 
-    bx = state->bus;
+    bx = state.bus;
     bx <<= 8;
-    bx |= (state->dev << 3) | state->fn;
+    bx |= (state.dev << 3) | state.fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -318,12 +267,12 @@ int pci_bios32::write_config_byte(const pci_location_t *state, uint32_t reg, uin
     return ret & 0xFF;
 }
 
-int pci_bios32::write_config_half(const pci_location_t *state, uint32_t reg, uint16_t value) {
+int pci_bios32::write_config_half(const pci_location_t state, uint32_t reg, uint16_t value) {
     uint32_t bx, ret;
 
-    bx = state->bus;
+    bx = state.bus;
     bx <<= 8;
-    bx |= (state->dev << 3) | state->fn;
+    bx |= (state.dev << 3) | state.fn;
     __asm__(
         "lcall *(%%esi)	\n\t"
         "jc 1f					\n\t"
@@ -340,12 +289,12 @@ int pci_bios32::write_config_half(const pci_location_t *state, uint32_t reg, uin
     return ret & 0xFF;
 }
 
-int pci_bios32::write_config_word(const pci_location_t *state, uint32_t reg, uint32_t value) {
+int pci_bios32::write_config_word(const pci_location_t state, uint32_t reg, uint32_t value) {
     uint32_t bx, ret;
 
-    bx = state->bus;
+    bx = state.bus;
     bx <<= 8;
-    bx |= (state->dev << 3) | state->fn;
+    bx |= (state.dev << 3) | state.fn;
     __asm__(
         "lcall *(%%esi)			\n\t"
         "jc 1f					\n\t"
@@ -356,49 +305,6 @@ int pci_bios32::write_config_word(const pci_location_t *state, uint32_t reg, uin
         "c"(value),
         "b"(bx),
         "D"(reg),
-        "S"(&bios32_entry_)
-        : "cc", "memory");
-    ret >>= 8;
-    return ret & 0xFF;
-}
-
-int pci_bios32::get_irq_routing_options(irq_routing_options_t *options, uint16_t *pci_irqs) {
-    uint32_t ret;
-
-    __asm__(
-        "lcall *(%%esi)			\n\t"
-        "jc 1f					\n\t"
-        "xor %%ah,%%ah			\n"
-        "1:"
-        : "=b"(*pci_irqs),
-        "=a"(ret)
-        : "1"(PCIBIOS_GET_IRQ_ROUTING_OPTIONS),
-        "b"(0),
-        "D"(options),
-        "S"(&bios32_entry_)
-        : "cc", "memory");
-    ret >>= 8;
-    return ret & 0xff;
-}
-
-int pci_bios32::set_irq_hw_int(const pci_location_t *state, uint8_t int_pin, uint8_t irq) {
-    uint32_t bx, cx, ret;
-
-    bx = state->bus;
-    bx <<= 8;
-    bx |= (state->dev << 3) | state->fn;
-    cx = irq;
-    cx <<= 8;
-    cx |= int_pin;
-    __asm__(
-        "lcall *(%%esi)			\n\t"
-        "jc 1f					\n\t"
-        "xor %%ah,%%ah			\n"
-        "1:"
-        : "=a"(ret)
-        : "0"(PCIBIOS_PCI_SET_IRQ_HW_INT),
-        "b"(bx),
-        "c"(cx),
         "S"(&bios32_entry_)
         : "cc", "memory");
     ret >>= 8;

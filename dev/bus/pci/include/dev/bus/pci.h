@@ -192,20 +192,14 @@ int pci_get_last_bus(void);
 int pci_get_last_segment(void);
 
 status_t pci_read_config(pci_location_t loc, pci_config_t *config);
-status_t pci_find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index);
-status_t pci_find_pci_class_code(pci_location_t *state, uint32_t class_code, uint16_t index);
 
-status_t pci_read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t *value);
-status_t pci_read_config_half(const pci_location_t *state, uint32_t reg, uint16_t *value);
-status_t pci_read_config_word(const pci_location_t *state, uint32_t reg, uint32_t *value);
+status_t pci_read_config_byte(pci_location_t state, uint32_t reg, uint8_t *value);
+status_t pci_read_config_half(pci_location_t state, uint32_t reg, uint16_t *value);
+status_t pci_read_config_word(pci_location_t state, uint32_t reg, uint32_t *value);
 
-status_t pci_write_config_byte(const pci_location_t *state, uint32_t reg, uint8_t value);
-status_t pci_write_config_half(const pci_location_t *state, uint32_t reg, uint16_t value);
-status_t pci_write_config_word(const pci_location_t *state, uint32_t reg, uint32_t value);
-
-status_t pci_get_irq_routing_options(irq_routing_entry *entries, uint16_t *count, uint16_t *pci_irqs);
-status_t pci_set_irq_hw_int(const pci_location_t *state, uint8_t int_pin, uint8_t irq);
-
+status_t pci_write_config_byte(pci_location_t state, uint32_t reg, uint8_t value);
+status_t pci_write_config_half(pci_location_t state, uint32_t reg, uint16_t value);
+status_t pci_write_config_word(pci_location_t state, uint32_t reg, uint32_t value);
 
 // pci bus manager
 // builds a list of devices and allows for various operations on the list
@@ -217,5 +211,42 @@ status_t pci_bus_mgr_visit_devices(pci_visit_routine routine, void *cookie);
 // must be called after pci_init_*();
 status_t pci_bus_mgr_init(void);
 
+// Look for the Nth match of device id and vendor id.
+// Either device or vendor is skipped if set to 0xffff.
+// Error if both is set to 0xffff.
+status_t pci_bus_mgr_find_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, size_t index);
+
+// Look for the Nth match of combination of base, subclass, and interface.
+// interface and subclass may be set to 0xff in which case it will skip.
+status_t pci_bus_mgr_find_device_by_class(pci_location_t *state, uint8_t base_class, uint8_t subclass, uint8_t interface, size_t index);
+
 __END_CDECLS
+
+#if __cplusplus
+
+// C++ helper routine for pci_bus_mgr_visit_devices
+// Wrapper to convert lambdas and other function like things to the C api
+template <typename T>
+void pci_bus_mgr_visit_devices(T routine) {
+    struct vdata {
+        T &routine;
+    };
+
+    auto v = [](pci_location_t loc, void *cookie) {
+        vdata *data = static_cast<vdata *>(cookie);
+        data->routine(loc);
+    };
+
+    vdata data = { routine };
+    pci_bus_mgr_visit_devices(v, &data);
+}
+
+inline bool operator==(pci_location_t a, pci_location_t b) {
+    return a.segment == b.segment &&
+        a.bus == b.bus &&
+        a.dev == b.dev &&
+        a.fn == b.fn;
+}
+
+#endif // __cplusplus
 

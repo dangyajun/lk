@@ -41,31 +41,7 @@ int pci_get_last_segment() {
     return 0;
 }
 
-status_t pci_find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index) {
-    LTRACEF("device_id dev %#hx vendor %#hx index %#hx\n", device_id, vendor_id, index);
-
-    if (!pcib) return ERR_NOT_CONFIGURED;
-
-    AutoSpinLock guard(&lock);
-
-    int res = pcib->find_pci_device(state, device_id, vendor_id, index);
-
-    return res;
-}
-
-status_t pci_find_pci_class_code(pci_location_t *state, uint32_t class_code, uint16_t index) {
-    LTRACEF("device_id class %#x index %#hx\n", class_code, index);
-
-    if (!pcib) return ERR_NOT_CONFIGURED;
-
-    AutoSpinLock guard(&lock);
-
-    int res = pcib->find_pci_class_code(state, class_code, index);
-
-    return res;
-}
-
-status_t pci_read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t *value) {
+status_t pci_read_config_byte(const pci_location_t state, uint32_t reg, uint8_t *value) {
     if (!pcib) return ERR_NOT_CONFIGURED;
 
     AutoSpinLock guard(&lock);
@@ -74,7 +50,7 @@ status_t pci_read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t
 
     return res;
 }
-status_t pci_read_config_half(const pci_location_t *state, uint32_t reg, uint16_t *value) {
+status_t pci_read_config_half(const pci_location_t state, uint32_t reg, uint16_t *value) {
     if (!pcib) return ERR_NOT_CONFIGURED;
 
     AutoSpinLock guard(&lock);
@@ -84,7 +60,7 @@ status_t pci_read_config_half(const pci_location_t *state, uint32_t reg, uint16_
     return res;
 }
 
-status_t pci_read_config_word(const pci_location_t *state, uint32_t reg, uint32_t *value) {
+status_t pci_read_config_word(const pci_location_t state, uint32_t reg, uint32_t *value) {
     if (!pcib) return ERR_NOT_CONFIGURED;
 
     AutoSpinLock guard(&lock);
@@ -94,7 +70,7 @@ status_t pci_read_config_word(const pci_location_t *state, uint32_t reg, uint32_
     return res;
 }
 
-status_t pci_write_config_byte(const pci_location_t *state, uint32_t reg, uint8_t value) {
+status_t pci_write_config_byte(const pci_location_t state, uint32_t reg, uint8_t value) {
     if (!pcib) return ERR_NOT_CONFIGURED;
 
     AutoSpinLock guard(&lock);
@@ -104,7 +80,7 @@ status_t pci_write_config_byte(const pci_location_t *state, uint32_t reg, uint8_
     return res;
 }
 
-status_t pci_write_config_half(const pci_location_t *state, uint32_t reg, uint16_t value) {
+status_t pci_write_config_half(const pci_location_t state, uint32_t reg, uint16_t value) {
     if (!pcib) return ERR_NOT_CONFIGURED;
 
     AutoSpinLock guard(&lock);
@@ -114,33 +90,12 @@ status_t pci_write_config_half(const pci_location_t *state, uint32_t reg, uint16
     return res;
 }
 
-status_t pci_write_config_word(const pci_location_t *state, uint32_t reg, uint32_t value) {
+status_t pci_write_config_word(const pci_location_t state, uint32_t reg, uint32_t value) {
     if (!pcib) return ERR_NOT_CONFIGURED;
 
     AutoSpinLock guard(&lock);
 
     int res = pcib->write_config_word(state, reg, value);
-
-    return res;
-}
-
-status_t pci_get_irq_routing_options(irq_routing_entry *entries, uint16_t *count, uint16_t *pci_irqs) {
-    if (!pcib) return ERR_NOT_CONFIGURED;
-
-    // TODO: highly bios32 specific, abstract this differently
-    pci_backend::irq_routing_options_t options;
-    options.size = sizeof(irq_routing_entry) * *count;
-    options.selector = 0x10; // XXX actually DATA_SELECTOR
-    options.offset = entries;
-
-    int res;
-    {
-        AutoSpinLock guard(&lock);
-
-        res = pcib->get_irq_routing_options(&options, pci_irqs);
-    }
-
-    *count = options.size / sizeof(irq_routing_entry);
 
     return res;
 }
@@ -156,7 +111,7 @@ status_t pci_read_config(const pci_location_t loc, pci_config_t *config) {
     size_t next_index;
     auto read_byte = [&]() -> uint8_t {
         uint8_t val;
-        err = pci_read_config_byte(&loc, next_index, &val);
+        err = pci_read_config_byte(loc, next_index, &val);
         next_index++;
         if (err < 0) return 0;
         return val;
@@ -164,7 +119,7 @@ status_t pci_read_config(const pci_location_t loc, pci_config_t *config) {
 
     auto read_half = [&]() -> uint16_t {
         uint16_t val;
-        err = pci_read_config_half(&loc, next_index, &val);
+        err = pci_read_config_half(loc, next_index, &val);
         next_index += 2;
         if (err < 0) return 0;
         return val;
@@ -172,7 +127,7 @@ status_t pci_read_config(const pci_location_t loc, pci_config_t *config) {
 
     auto read_word = [&]() -> uint32_t {
         uint32_t val;
-        err = pci_read_config_word(&loc, next_index, &val);
+        err = pci_read_config_word(loc, next_index, &val);
         next_index += 4;
         if (err < 0) return 0;
         return val;
@@ -298,16 +253,6 @@ status_t pci_read_config(const pci_location_t loc, pci_config_t *config) {
     }
 
     return NO_ERROR;
-}
-
-status_t pci_set_irq_hw_int(const pci_location_t *state, uint8_t int_pin, uint8_t irq) {
-    if (!pcib) return ERR_NOT_CONFIGURED;
-
-    AutoSpinLock guard(&lock);
-
-    int res = pcib->set_irq_hw_int(state, int_pin, irq);
-
-    return res;
 }
 
 status_t pci_init_legacy() {

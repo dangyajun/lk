@@ -224,7 +224,7 @@ static status_t ide_init(struct device *dev) {
         pci_location_t loc;
         pci_config_t pci_config;
 
-        err = pci_find_pci_class_code(&loc, 0x010180, 0);
+        err = pci_bus_mgr_find_device_by_class(&loc, 0x1, 0x1, 0x80, 0);
         if (err != _PCI_SUCCESSFUL) {
             LTRACEF("Failed to find PCI IDE device\n");
             res = ERR_NOT_FOUND;
@@ -236,7 +236,7 @@ static status_t ide_init(struct device *dev) {
         for (i=0; i < sizeof(pci_config) / sizeof(uint32_t); i++) {
             uint32_t reg = sizeof(uint32_t) * i;
 
-            err = pci_read_config_word(&loc, reg, ((uint32_t *) &pci_config) + i);
+            err = pci_read_config_word(loc, reg, ((uint32_t *) &pci_config) + i);
             if (err != _PCI_SUCCESSFUL) {
                 LTRACEF("Failed to read config reg %d: 0x%02x\n", reg, err);
                 res = ERR_NOT_CONFIGURED;

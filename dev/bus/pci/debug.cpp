@@ -40,7 +40,7 @@ static void pci_list(void) {
                     state.fn = fn;
 
                     uint16_t vendor_id;
-                    ret = pci_read_config_half(&state, PCI_CONFIG_VENDOR_ID, &vendor_id);
+                    ret = pci_read_config_half(state, PCI_CONFIG_VENDOR_ID, &vendor_id);
                     if (ret != _PCI_SUCCESSFUL) goto error;
                     if (vendor_id == 0xffff && fn == 0) {
                         // skip this device now before bothering to read the rest of the
@@ -181,7 +181,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
         switch (argv[2].str[1]) {
             case 'b': {
                 uint8_t value;
-                ret = pci_read_config_byte(&loc, offset, &value);
+                ret = pci_read_config_byte(loc, offset, &value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
                 printf("byte at device %04x:%02x:%02x.%1x config offset %04x: %02x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
@@ -190,7 +190,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
 
             case 'h': {
                 uint16_t value;
-                ret = pci_read_config_half(&loc, offset, &value);
+                ret = pci_read_config_half(loc, offset, &value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
                 printf("half at device %04x:%02x:%02x.%1x config offset %04x: %04x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
@@ -199,7 +199,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
 
             case 'w': {
                 uint32_t value;
-                ret = pci_read_config_word(&loc, offset, &value);
+                ret = pci_read_config_word(loc, offset, &value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
                 printf("word at device %04x:%02x:%02x.%1x config offset %04x: %08x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
@@ -220,7 +220,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
         switch (argv[2].str[1]) {
             case 'b': {
                 uint8_t value = atoui(argv[7].str);
-                ret = pci_write_config_byte(&loc, offset, value);
+                ret = pci_write_config_byte(loc, offset, value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
                 printf("byte to device %04x:%02x:%02x.%1x config offset %04x: %02x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
@@ -229,7 +229,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
 
             case 'h': {
                 uint16_t value = atoui(argv[7].str);
-                ret = pci_write_config_half(&loc, offset, value);
+                ret = pci_write_config_half(loc, offset, value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
                 printf("half to device %04x:%02x:%02x.%1x config offset %04x: %04x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);
@@ -239,7 +239,7 @@ static int pci_config(int argc, const console_cmd_args *argv) {
 
             case 'w': {
                 uint32_t value = atoui(argv[7].str);
-                ret = pci_write_config_word(&loc, offset, value);
+                ret = pci_write_config_word(loc, offset, value);
                 if (ret != _PCI_SUCCESSFUL) goto error;
 
                 printf("word to device %04x:%02x:%02x.%1x config offset %04x: %08x\n", loc.segment, loc.bus, loc.dev, loc.fn, offset, value);

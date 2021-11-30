@@ -14,5 +14,6 @@ MODULE_SRCS += \
 MODULE_DEPS += lib/libcpp
 
 MODULE_CPPFLAGS += -Wno-invalid-offsetof
+MODULE_COMPILEFLAGS += -Wmissing-declarations
 
 include make/module.mk

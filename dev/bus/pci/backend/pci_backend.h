@@ -27,45 +27,23 @@ public:
     int get_last_bus() const { return last_bus_; }
 
     // virtuals that a concrete implementation should override
-    virtual int find_pci_device(pci_location_t *state, uint16_t device_id, uint16_t vendor_id, uint16_t index) {
+    virtual int read_config_byte(pci_location_t state, uint32_t reg, uint8_t *value) {
+        return ERR_NOT_CONFIGURED;
+    }
+    virtual int read_config_half(pci_location_t state, uint32_t reg, uint16_t *value) {
+        return ERR_NOT_CONFIGURED;
+    }
+    virtual int read_config_word(pci_location_t state, uint32_t reg, uint32_t *value) {
         return ERR_NOT_CONFIGURED;
     }
 
-    virtual int find_pci_class_code(pci_location_t *state, uint32_t class_code, uint16_t index) {
+    virtual int write_config_byte(pci_location_t state, uint32_t reg, uint8_t value) {
         return ERR_NOT_CONFIGURED;
     }
-
-    virtual int read_config_byte(const pci_location_t *state, uint32_t reg, uint8_t *value) {
+    virtual int write_config_half(pci_location_t state, uint32_t reg, uint16_t value) {
         return ERR_NOT_CONFIGURED;
     }
-    virtual int read_config_half(const pci_location_t *state, uint32_t reg, uint16_t *value) {
-        return ERR_NOT_CONFIGURED;
-    }
-    virtual int read_config_word(const pci_location_t *state, uint32_t reg, uint32_t *value) {
-        return ERR_NOT_CONFIGURED;
-    }
-
-    virtual int write_config_byte(const pci_location_t *state, uint32_t reg, uint8_t value) {
-        return ERR_NOT_CONFIGURED;
-    }
-    virtual int write_config_half(const pci_location_t *state, uint32_t reg, uint16_t value) {
-        return ERR_NOT_CONFIGURED;
-    }
-    virtual int write_config_word(const pci_location_t *state, uint32_t reg, uint32_t value) {
-        return ERR_NOT_CONFIGURED;
-    }
-
-    // TODO: highly bios32 specific
-    struct irq_routing_options_t {
-        uint16_t size;
-        void *offset;
-        uint16_t selector;
-    } __PACKED;
-
-    virtual int get_irq_routing_options(irq_routing_options_t *options, uint16_t *pci_irqs) {
-        return ERR_NOT_CONFIGURED;
-    }
-    virtual int set_irq_hw_int(const pci_location_t *state, uint8_t int_pin, uint8_t irq) {
+    virtual int write_config_word(pci_location_t state, uint32_t reg, uint32_t value) {
         return ERR_NOT_CONFIGURED;
     }
 
